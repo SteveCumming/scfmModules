@@ -27,48 +27,6 @@ In this excercise, we will some tables provided in 2001 by Alberta Pacific Fores
 To illustrate some features of a general Volume Age table/data assimilation procedure we will read this table, reorganise it, choose one strata more or less at random (because who knows what they mean anymore?) and convert it into a numeric vector of 1 yr steps, from 0 to __yieldTableMaxAge__. We will start by defining a module, which let's call it __yieldTables___.
 
 
-
-```{r test_yieldTables}
-library(SpaDES)
-library(magrittr)
- 
-#inputDir <- file.path(tempdir(), "inputs") %>% checkPath(create = TRUE)
-baseDir<-"/Users/stevec/Dropbox/SpaDES/Data"
-outputDir <- file.path(tempdir(), "outputs")  %>% checkPath(create = TRUE)
-times <- list(start = 0, end = 10)
-parameters <- list(
-  .globals = list(burnStats = "nPixelsBurned"),
-  #.progress = list(type = "text", interval = 1), # for a progress bar
-  ## If there are further modules, each can have its own set of parameters:
-  yieldTables = list(
-    yieldTableDir = "volumeAgeTables"
-    )
-  #module2 = list(param1 = value1, param2 = value2)
-)
-modules <- list("loadYieldTables")
-objects <- list()
-paths <- list(
-  cachePath = file.path(outputDir, "cache"),
-  modulePath = file.path(".","Harvesting"),
-  inputPath = baseDir,
-  outputPath = outputDir
-)
- 
-mySim <- simInit(times = times, params = parameters, 
-                 modules = modules,
-                 objects = objects, paths = paths)
-spades(mySim)
-plot(mySim$yieldTables$AB,xlab="Stand Age", ylab="Volume (m^3/ha)")
-```
- 
- 
-# One time AAC Calculations
- 
- 
-In this section, we implement a simple AAC caculator based on Hanzlik's (1922) formula.
- 
-The can be calculated given a yield curve and an age structure as follows.
- 
 # One time AAC Calculations
 
 
@@ -86,43 +44,6 @@ Then $V_m$ is the volume of mature timber, older than R, while I in the incremen
 
 In this code, we allow the Maximum age since disturbance, and the maximum yieldcurve age to differ. The default values are 200 and 300yr respectively. There are probably edge cases we have not tested.  
 
-
-```{r test_Hanzik}
-library(SpaDES)
-library(magrittr)
-library(raster)
-inputDir <- file.path("inputs") %>% checkPath(create = TRUE)
-outputDir <- file.path("outputs")
-times <- list(start = 0, end = 10)
-parameters <- list(
-  Hanzlik = list(replanInterval = 10,
-                 rationPeriodMultiplier = 2)
-)
-modules <- list("loadYieldTables", "Hanzlik")
-
-ageMap <- raster(raster::extent(0,49,0,49),nrow=50, ncol=50, vals=as.integer(runif(50*50)*150))
-objects <- list(ageMap=ageMap,
-                #strataMap=raster(raster::extent(0,49,0,49),nrow=50, ncol=50, vals=rep(5,50*50)),
-                strataMap=randomPolygons(ageMap,numTypes=8),
-                landscapeAttr=list(cellSize=6.25)
-                )
-            
-paths <- list(
-  cachePath = file.path(outputDir, "cache"),
-  modulePath = file.path("scfmModules"),
-  inputPath = inputDir,
-  outputPath = outputDir
-)
-
-mySim <- simInit(times = times, params = parameters, modules = modules,
-                 objects = objects, paths = paths)
-
-if (exists("mySim")){
-  tmp <-spades(mySim)
-}
-
-```
-
 #Test Basic Harvesting Module
 
 
@@ -139,42 +60,6 @@ After that, there's several sequencing options to consider
 
 This version executes only an oldest-first pol
 
-```{r test_Harvest}
-library(SpaDES)
-library(magrittr)
-library(raster)
-try(rm(mySim))
-inputDir <- file.path("inputs") %>% checkPath(create = TRUE)
-outputDir <- file.path("outputs")
-times <- list(start = 0, end = 10)
-parameters <- list(
-  Hanzlik = list(replanInterval = 10,
-                 rationPeriodMultiplier = 2)
-)
-modules <- list("loadYieldTables", "Hanzlik", "harvest", "ageModule")
-
-objects <- list(
-  ageMap=raster(raster::extent(0,49,0,49),nrow=50, ncol=50, vals=as.integer(runif(50*50)*150)),
-  strataMap=randomPolygons(ageMap,numTypes=8),
-  landscapeAttr=list(cellSize=6.25)
-)
-            
-paths <- list(
-  cachePath = file.path(outputDir, "cache"),
-  modulePath = file.path("scfmModules"),
-  inputPath = inputDir,
-  outputPath = outputDir
-)
-
-mySim <- simInit(times = times, params = parameters, modules = modules,
-                 objects = objects, paths = paths)
-
-if (exists("mySim")){
-  tmp <-spades(mySim)
-}
-
-```
-
 # Natural Disturbance Regime
 
 Now we add a disturbance module to this preceding code, based on the Van Wagner (1978) random, age-independent burning probability. We allow the forest to age for 200 years to reach something an equilibrium, than calculate AAC every 10 years thereafter.
@@ -183,65 +68,29 @@ Now we add a disturbance module to this preceding code, based on the Van Wagner 
 It's entertaining to watch the interaction of disturbance, ageing, and a declining yield curve.
 
 
-
 ##Test Basic Harvesting Module with fire
 
-```{r test_Harvest+Fire}
-library(SpaDES)
-library(magrittr)
-library(raster)
-try(rm(mySim))
-inputDir <- file.path("inputs") %>% checkPath(create = TRUE)
-outputDir <- file.path("outputs")
-times <- list(start = 0, end = 50)
-parameters <- list(
-  Hanzlik = list(replanInterval = 10,
-                 rationPeriodMultiplier = 2)
-)
-modules <- list("loadYieldTables", "Hanzlik", "harvest", "ageModule", "scfmIgnition", "scfmEscape", "scfmSpread","mapBurns")
-
-ageMap<-raster(raster::extent(0,49,0,49),nrow=50, ncol=50, vals=as.integer(runif(50*50)*150))
-flammableMap <- ageMap * 0
-objects <- list(
-                scfmPars=list(pSpread=0.235,
-                  p0=0.115,
-                  naiveP0=0.15, 
-                  pIgnition=0.001, #0.0000112,
-                  maxBurnCells=NA
-                  ),
-                ageMap = ageMap,
-                strataMap=randomPolygons(ageMap,numTypes=8),
-                landscapeAttr=list(cellSize=6.25),
-                flammableMap=flammableMap
-            )
-            
-paths <- list(
-  cachePath = file.path(outputDir, "cache"),
-  modulePath = file.path("scfmModules"),
-  inputPath = inputDir,
-  outputPath = outputDir
-)
-
-mySim <- simInit(times = times, params = parameters, modules = modules,
-                 objects = objects, paths = paths)
-
-if (exists("mySim")){
-  tmp <-spades(mySim)
-}
-
-```
 
 #Add disturbanceMap and variable persistence Times
 
-```{r ReadyForYou}
+```{r whole_analysis}
 library(SpaDES)
 library(magrittr)
 library(raster)
-try(rm(mySim))
-dev.useRSGD(FALSE)
-try(dev.off(),silent=TRUE)
-inputDir <- file.path("inputs") %>% checkPath(create = TRUE)
-outputDir <- file.path("outputs")
+
+# set the directories
+workDirectory <- getwd()
+
+paths <- list(
+  cachePath = file.path(workDirectory, "cache"),
+  modulePath = file.path(workDirectory, "modules"),
+  inputPath = file.path(workDirectory, "inputs"),
+  outputPath = file.path(workDirectory, "outputs")
+)
+
+setPaths(modulePath = paths$modulePath, inputPath = paths$inputPath, outputPath = paths$outputPath, cachePath = paths$cachePath)
+
+## list the modules to use
 times <- list(start = 0, end = 50)
 parameters <- list(
   Hanzlik = list(replanInterval = 10,
@@ -264,33 +113,19 @@ objects <- list(
                 landscapeAttr=list(cellSize=6.25),
                 flammableMap=flammableMap
             )
-            
-paths <- list(
-  cachePath = file.path(outputDir, "cache"),
-  modulePath = file.path("scfmModules"),
-  inputPath = inputDir,
-  outputPath = outputDir
-)
 
-
-mySim <- simInit(times = times, params = parameters, modules = modules,
+mySim <- simInit(times = times, params = parameters, 
+                 modules = modules,
                  objects = objects, paths = paths)
+mySimOut <- spades(mySim)
 
-if (exists("mySim")){
-  newPlot()
-  tmp <-spades(mySim,debug=TRUE)
-  
-  newPlot()
-  clearPlot()
-  Plot(apply(tmp$harvestStats,1,sum))
-  Plot(tmp$strataMap)
-  Plot(tmp$volMap)
-  Plot(tmp$harvestStateMap)
-  Plot(tmp$disturbanceMap)
-  Plot(tmp$ageMap)
-  
-  dev.useRSGD(TRUE)
-}
+# Yield curve example
+plot(mySimOut$yieldTables$AB$AwSw, xlab="Stand Age", ylab="Volume (m^3/ha)")
 
+Plot(apply(mySimOut$harvestStats,1,sum))
+Plot(mySimOut$strataMap)
+Plot(mySimOut$volMap)
+Plot(mySimOut$harvestStateMap)
+Plot(mySimOut$disturbanceMap)
+Plot(mySimOut$ageMap)
 ```
-

@@ -39,14 +39,14 @@ doEvent.loadYieldTables = function(sim, eventTime, eventType, debug = FALSE) {
 }
 
 Init <- function(sim) {
-  #browser()
+ 
   sim$yieldTables<-list()    #is a list, at least one element
   tmp <- P(sim)$yieldTableDir
   if (is.na(tmp))
     ytDir <- file.path(dataPath(sim))
   else
     ytDir <- file.path(inputPath(sim),tmp)
-  ytFs <- dir(ytDir) 
+  ytFs <- dir(ytDir)
   
   for(ytF in ytFs){    
     fp <- file.path(ytDir, ytF)
