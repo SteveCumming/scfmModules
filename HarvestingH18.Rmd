@@ -1,6 +1,6 @@
 ---
 title: "Harvesting and all that"
-author: "Steve Cumming - Modified by Tati"
+author: "Steve Cumming"
 date: "March 23, 2016"
 output: html_document
 ---
@@ -31,7 +31,7 @@ To illustrate some features of a general Volume Age table/data assimilation proc
 ```{r test_yieldTables}
 library(SpaDES)
 library(magrittr)
- 
+
 #inputDir <- file.path(tempdir(), "inputs") %>% checkPath(create = TRUE)
 baseDir<-"/Users/stevec/Dropbox/SpaDES/Data"
 outputDir <- file.path(tempdir(), "outputs")  %>% checkPath(create = TRUE)
@@ -53,22 +53,15 @@ paths <- list(
   inputPath = baseDir,
   outputPath = outputDir
 )
- 
+
 mySim <- simInit(times = times, params = parameters, 
                  modules = modules,
                  objects = objects, paths = paths)
 spades(mySim)
 plot(mySim$yieldTables$AB,xlab="Stand Age", ylab="Volume (m^3/ha)")
 ```
- 
- 
-# One time AAC Calculations
- 
- 
-In this section, we implement a simple AAC caculator based on Hanzlik's (1922) formula.
- 
-The can be calculated given a yield curve and an age structure as follows.
- 
+
+
 # One time AAC Calculations
 
 
