@@ -61,7 +61,7 @@ Stratify <- function(sim){
 Init <- function(sim) {
  
   sim$strataMap <- raster::raster(sim$vegMap) 
-  sim$strataMap[] <- sim$strataMap[] * 0
+  sim$strataMap[] <- sim$vegMap[] * 0
   
   return(invisible(sim))
 }
