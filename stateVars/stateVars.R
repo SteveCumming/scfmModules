@@ -78,8 +78,8 @@ Init <- function(sim) {
   #2 = cut
   #3 = adjacent to cut
   
-  sim$heightMap <- raster::raster(sim$harvestStateMap)
-  sim$heightMap[] <- sim$harvestStateMap[] * 0
+  sim$heightMap <- raster::raster(sim$disturbanceMap)
+  sim$heightMap[] <- sim$disturbanceMap[] * 0
   setColors(sim$heightMap, n=10) <- colorRampPalette(c("white","green4"))(10)
   sim<-heightFromAge(sim)
   
