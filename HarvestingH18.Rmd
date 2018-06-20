@@ -242,14 +242,14 @@ parameters <- list(
   stateVars = list(persistTimes=c(20,10,10))
 )
 modules <- list("loadYieldTables", "Hanzlik", "harvest", "ageModule", "scfmIgnition", "scfmEscape", "scfmSpread","mapBurns", "stateVars")
-
-ageMap<-raster(raster::extent(0,49,0,49),nrow=200, ncol=200, vals=as.integer(runif(200*200)*150))
+mapDim<-50
+ageMap<-raster(raster::extent(0,mapDim-1,0,mapDim-1),nrow=mapDim, ncol=mapDim, vals=as.integer(runif(mapDim*mapDim)*150))
 flammableMap <- ageMap * 0
 objects <- list(
                 scfmPars=list(pSpread=0.225,
                   p0=0.115,
                   naiveP0=0.15, 
-                  pIgnition=0.00004, #0.0000112,
+                  pIgnition=0.0001, #0.0000112,
                   maxBurnCells=NA
                   ),
                 ageMap = ageMap,
