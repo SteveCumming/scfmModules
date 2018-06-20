@@ -21,7 +21,9 @@ defineModule(sim,  list(
     defineParameter("greenUpPeriod", "numeric", 30, 0, 30, "For how many years do cut blocks affect adjacent areas?"),
     defineParameter(".plotInitialTime", "numeric", 0, NA, NA, 
                     "This describes the simulation time at which the first plot event should occur"),
-    defineParameter(".plotInterval", "numeric", 1, NA, NA, "This describes the simulation time at which the first plot event should occur")
+    defineParameter(".plotInterval", "numeric", 1, NA, NA, "This describes the simulation time at which the first plot event should occur"),
+    defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "first time to save"),
+    defineParameter(".saveInterval", "numeric", NA, NA, NA, "first time to save")
   ),
   inputObjects = bind_rows(
     expectsInput(objectName = "ageMap", objectClass = "RasterLayer", desc = "forest Age structure" ),
@@ -50,11 +52,18 @@ doEvent.harvest = function(sim, eventTime, eventType) {
       sim <- Init(sim)
       sim <- scheduleEvent(sim, P(sim)$startTime,"harvest","harvest")
       sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "harvest", "plot")
+      sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "harvest", "save", SpaDES.core::.lowest())
     },
     plot = {
+      #browser()
       Plot(sim$harvestStateMap, legendRange=0:1)
       #Plot(sim$disturbanceMap, legendRange=0:3,zero.color="white")
       sim <- scheduleEvent(sim, time(sim)+P(sim)$.plotInterval, "harvest", "plot")
+    },
+    save = {
+      Save(sim)
+      #Plot(sim$disturbanceMap, legendRange=0:3,zero.color="white")
+      sim <- scheduleEvent(sim, time(sim)+P(sim)$.saveInterval, "harvest", "save", SpaDES.core::.lowest())
     },
     harvest = {
       sim <- Harvest(sim) 
@@ -182,4 +191,12 @@ Harvest <- function(sim){
   
 }
 
+
+Save <- function(sim){
+  fname <- file.path(outputPath(sim), "harvestStats.csv")
+  write.table(sim$harvestStats,fname, dec=".", sep=",", 
+              col.names=FALSE, row.names=FALSE)       #the vol vector in Harvest() does not inherit the 
+                                                      #the strata names; it should.
+  return(invisible(sim))
+}
 
